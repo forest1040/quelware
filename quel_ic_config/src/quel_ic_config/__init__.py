@@ -102,7 +102,7 @@ from quel_ic_config.rfswitcharray import (
     RfSwitchArrayConfigHelper,
 )
 
-__version__ = "0.10.5"
+__version__ = "0.10.6"
 
 __all__ = (
     "Ad5328",
