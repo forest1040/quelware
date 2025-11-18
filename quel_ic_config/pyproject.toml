@@ -86,6 +86,11 @@ adi_ad9082_v170 = ["*.pyi", "py.typed", "LICENSES.pdf"]
 line-length = 120
 target-version = ["py39"]
 
+[tool.pytest.ini_options]
+markers = [
+    "with_devices: marks tests as working with devices (deselect with '-m \"not with_devices\"')"
+]
+
 [tool.mypy]
 python_version = 3.9
 mypy_path = [

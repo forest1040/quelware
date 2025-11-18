@@ -31,7 +31,7 @@ typecheck:
 	@uv run mypy src/quel_ic_config src/quel_ic_config_utils src/quel_ic_config_cli tests scripts
 
 test-without-devices:
-	@uv run pytest tests/without_devices
+	@uv run pytest -v tests/quel_ic_config/without_devices tests/quel_ic_config_utils -m "not with_devices"
 
 test-multi-environment:
 	@uvx tox
