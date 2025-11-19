@@ -74,7 +74,7 @@ class AbstractSyncAsyncCoapClient(threading.Thread, metaclass=ABCMeta):
     _clients: WeakSet["AbstractSyncAsyncCoapClient"] = WeakSet()
     _create_lock: threading.Lock = threading.Lock()
 
-    class _ProximityTransportTuning:
+    class _ProximityTransportTuning(aiocoap.numbers.constants.TransportTuning):
         # Notes: this tuning parameter is tailored for the default timeout (= 3.0 second).
         #        i.e., 0.3 * (1+2+4+8) * 1.25 = 5.625 < 10.0
         ACK_TIMEOUT = 0.3
