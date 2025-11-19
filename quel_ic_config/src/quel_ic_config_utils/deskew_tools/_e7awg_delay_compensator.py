@@ -31,6 +31,7 @@ class E7awgDelayCompensator:
     """Compensates delays by adjusting parameters for e7awg."""
 
     _MINIMUM_BLANK_IN_LAST_CAP_SECTION: Final[int] = 21
+    _MINIMUM_BLANK_IN_LAST_CHUNK: Final[int] = (_BLANK_WAVEDATA_LENGTH // 4) + 15
 
     def __init__(self, awg_init_blank_reference_word: int = _AWG_INIT_BLANK_REFERENCE_WORD_DEFAULT):
         """Initializes the E7awgParameterAdjuster.
@@ -60,14 +61,28 @@ class E7awgDelayCompensator:
         if len(copied.chunks) > 15:
             raise ValueError("The number of chunks must be less than 16.")
 
+        init_blank_word = self._awg_init_blank_reference_word + init_blank_offset_word - (_BLANK_WAVEDATA_LENGTH // 4)
+        num_wait_word_div_by_16, num_blank_word_of_dummy_chunk = divmod(init_blank_word, 16)
+        copied.num_wait_word += 16 * num_wait_word_div_by_16
+
         blank_chunk = qi.WaveChunk(
-            name_of_wavedata=_BLANK_WAVEDATA_NAME,
-            num_repeat=1,
-            num_blank_word=self._awg_init_blank_reference_word
-            + init_blank_offset_word
-            - _BLANK_WAVEDATA_LENGTH // _SAMPLES_PER_WORD,
+            name_of_wavedata=_BLANK_WAVEDATA_NAME, num_repeat=1, num_blank_word=num_blank_word_of_dummy_chunk
         )
         copied.chunks.insert(0, blank_chunk)
+
+        if copied.num_repeat > 1:
+            last_chunk = copied.chunks[-1]
+            if last_chunk.num_repeat > 1:
+                raise ValueError(
+                    "When num_repeat of AwgParam > 1, num_repeat of the last chunk must be 1 for adjustment."
+                )
+            if last_chunk.num_blank_word < self._MINIMUM_BLANK_IN_LAST_CHUNK:
+                raise ValueError(
+                    f"When num_repeat > 1, the number of num_blank_word in the last chunk must be equal to or greater than {self._MINIMUM_BLANK_IN_LAST_CHUNK} for adjustment."
+                )
+            last_chunk.num_blank_word -= _BLANK_WAVEDATA_LENGTH // 4
+            last_chunk.num_blank_word -= num_blank_word_of_dummy_chunk
+
         return copied
 
     def _check_if_awg_param_already_adjusted(self, awg_param: qi.AwgParam):
@@ -90,8 +105,6 @@ class E7awgDelayCompensator:
         if self._check_if_cap_param_already_adjusted(cap_param):
             raise ValueError("CapParam is already adjusted.")
 
-        last_section = copied.sections[-1]
-
         copied.sections.insert(0, qi.CapSection(name=_DUMMY_CAPSECTION_NAME, num_capture_word=4, num_blank_word=1))
 
         cap_init_blank_word = self._awg_init_blank_reference_word + init_blank_offset_word - (4 + 1)
@@ -99,10 +112,11 @@ class E7awgDelayCompensator:
         copied.num_wait_word += 16 * num_wait_word_div_by_16
         copied.sections[0].num_blank_word += num_blank_word_of_dummy_section
         if copied.num_repeat > 1:
+            last_section = copied.sections[-1]
             if last_section.num_blank_word < self._MINIMUM_BLANK_IN_LAST_CAP_SECTION:
                 raise ValueError(
                     f"When num_repeat > 1, the number of num_blank_word in the last section must be equal to or greater than {self._MINIMUM_BLANK_IN_LAST_CAP_SECTION} for adjustment."
-            )
+                )
             last_section.num_blank_word -= 4 + 1
             last_section.num_blank_word -= num_blank_word_of_dummy_section
 
@@ -113,6 +127,9 @@ class E7awgDelayCompensator:
 
     def get_minimum_blank_in_last_cap_section(self):
         return self._MINIMUM_BLANK_IN_LAST_CAP_SECTION
+
+    def get_minimum_blank_in_last_chunk(self):
+        return self._MINIMUM_BLANK_IN_LAST_CHUNK
 
 
 def _picosec_to_word(ps: int) -> int:
