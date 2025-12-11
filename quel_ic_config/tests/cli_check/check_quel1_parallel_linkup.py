@@ -277,7 +277,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
 
-    qi_root = str(Path(__file__).parent.parent.parent.parent)
+    qi_root = str(Path(__file__).parent.parent.parent)
 
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
